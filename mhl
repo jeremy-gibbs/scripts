@@ -1,0 +1,34 @@
+#!/usr/bin/perl
+
+# Used to highlight words/patterns in various colors. The patterns to highlight 
+# are specified as command line arguments. Each argument is assigned a different
+# color from the list, repeating colors if needed.
+use strict;
+use warnings;
+
+use Term::ANSIColor;
+
+# standard colors (except black)
+my @colors = qw(on_blue  on_magenta  on_cyan  on_white on_red on_green on_yellow);
+
+# associate each command line argument with a color
+my %colorMap = ();
+my $colorIndex = 0;
+while(@ARGV)
+{  
+   my $pattern = shift @ARGV;
+   $colorMap{$pattern} = color($colors[$colorIndex]) . $pattern . color("reset");
+   $colorIndex = ($colorIndex + 1) % int(@colors);
+}
+   
+# read from the pipe and color the output
+while(<>)
+{
+   my $line = $_;
+
+   foreach my $pattern (keys %colorMap)
+   {
+      $line =~ s/$pattern/$colorMap{$pattern}/g;
+   }  
+   print $line;
+}
