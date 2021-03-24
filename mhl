@@ -14,20 +14,17 @@ my @colors = qw(on_blue  on_magenta  on_cyan  on_white on_red on_green on_yellow
 # associate each command line argument with a color
 my %colorMap = ();
 my $colorIndex = 0;
-while(@ARGV)
-{  
+while(@ARGV) {  
    my $pattern = shift @ARGV;
    $colorMap{$pattern} = color($colors[$colorIndex]) . $pattern . color("reset");
    $colorIndex = ($colorIndex + 1) % int(@colors);
 }
    
 # read from the pipe and color the output
-while(<>)
-{
+while(<>) {
    my $line = $_;
 
-   foreach my $pattern (keys %colorMap)
-   {
+   foreach my $pattern (keys %colorMap) {
       $line =~ s/$pattern/$colorMap{$pattern}/g;
    }  
    print $line;
