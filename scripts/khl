@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+
+# hlKube - highlight the output from kubectl get pods
+# usage: <command> | hlKube
+use strict;
+use warnings;
+use Term::ANSIColor;
+
+my @colors = (
+   'white on_blue',
+   'white on_green',
+   'black on_yellow',
+   'white on_cyan',
+   'black on_white',
+   'white on_magenta',
+   'white on_red',
+   'black on_bright_blue',
+   'black on_bright_green',
+   'black on_bright_yellow',
+   'black on_bright_cyan',
+   'black on_bright_white',
+   'black on_bright_magenta',
+   'black on_bright_red');
+
+my $C_ERROR = color("white on_red");
+my $C_GOOD = color("green");
+my $C_WARNING = color("black on_yellow");
+my $C_IMG = color("red on_cyan");
+my $C_UNEXPECTED = color("white on_magenta");
+my $C_STARTING_CONTAINERS = color("white on_black");
+my $C_TERM = color("magenta");
+my $C_PENDING = color("cyan");
+my $C_INIT = color("bright_green");
+
+my %replaceMap = (
+   # GOOD ready states
+   "1/1"       => $C_GOOD,
+   "2/2"       => $C_GOOD,
+   "3/3"       => $C_GOOD,
+
+   # starting ready states
+   "0/1"       => $C_STARTING_CONTAINERS,
+   "0/2"       => $C_STARTING_CONTAINERS,
+   "0/3"       => $C_STARTING_CONTAINERS,
+   "1/2"       => $C_STARTING_CONTAINERS,
+   "1/3"       => $C_STARTING_CONTAINERS,
+   "2/3"       => $C_STARTING_CONTAINERS,
+
+   # stating
+   "Init:"              => $C_INIT,
+   "Pending"            => $C_PENDING,
+   "ContainerCreating"  => $C_PENDING,
+
+   # Error states
+   "Error"              => $C_ERROR,
+   "Failed"             => $C_ERROR,
+   "CrashLoopBackOff"   => $C_ERROR,
+
+   # Other error states
+   "ImagePullBackOff"   => $C_IMG,
+   "ErrImagePull"       => $C_IMG,
+
+   # non-zero number of restarts 
+   "\\s[0-9]*[1-9]\\s"    => $C_WARNING,
+
+   # Unexpected states
+   "Evicted"            => $C_UNEXPECTED,
+
+   # Term states
+   "Terminating"        => $C_TERM,
+   "Completed"          => $C_TERM
+
+);
+
+for(my $i = 0; $i < @ARGV; $i++) {
+   my $color = $colors[$i % @colors];
+   my $search = $ARGV[$i];
+   $replaceMap{$search} = color($color);
+}
+
+while(<STDIN>)
+{
+   my $line = $_;
+   foreach my $search (keys %replaceMap)
+   {
+      if($line =~ m/($search)/)
+      {
+         my $replace = $replaceMap{$search} . $1 . color('reset');
+         $line =~ s/$search/$replace/g;
+      }
+   }
+   print "$line";
+}
+

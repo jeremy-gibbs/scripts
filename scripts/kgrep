@@ -1,0 +1,71 @@
+#!/usr/bin/bash
+
+# script to make getting running pods easier
+
+usage() {
+   echo "$1
+   Usage:
+   kgrep
+         <name pattern>                     # required - The pattern used by grep
+         [-v]                               # optional pattern to exclude
+         [--type <type>]                    # The kube type (e.g. pod, service, secret) - defaults to pod
+         [-n namespace|--all-namespaces]    # The namespace(s) to search. Defaults to \$FADE_ENV=$NS
+         [--details ]                       # shows details - defaults to only name
+         [--phase <pahse>]                  # For pods, limits only pods to the given phase. Possible values:
+                                            # Running, Pending, Succeeded, Failed, Unknown
+   "
+   exit 1
+}
+
+if [ $# -lt 1 ]; then
+   usage "Need to specify a pattern"
+fi
+
+TYPE=pod
+PATTERN=$1
+shift
+ONLY_NAME="-o custom-columns=:metadata.name"
+
+# Process the arguments
+while [ $# -gt 0 ]; do
+   case "$1" in
+      -v)
+         EXCLUDE=$2
+         shift
+         shift;;
+      --type)
+         TYPE=$2
+         shift
+         shift;;
+      -n)
+         NAMESPACE="-n $2"
+         shift
+         shift;;
+      --all-namespaces)
+         NAMESPACE=$1
+         shift;;
+      --details)
+         ONLY_NAME=""
+         shift;;
+      --phase)
+         PHASE="--field-selector=status.phase=$2"
+         shift
+         shift;;
+      *)
+         usage "Unknown argument $1"
+         ;;
+   esac
+done
+
+if [[ $TYPE != "pod"*  && ! -z $PHASE ]]; then
+   usage "--phase only applies to type: pod"
+fi
+
+NAMESPACE=${NAMESPACE:-"-n $NS"}
+
+
+if [[ -z $EXCLUDE ]]; then
+   kubectl get $TYPE $NAMESPACE $ONLY_NAME $PHASE | grep $PATTERN
+else
+   kubectl get $TYPE $NAMESPACE $ONLY_NAME $PHASE | grep $PATTERN | grep -v $EXCLUDE
+fi
